@@ -1,10 +1,10 @@
 using UnityEngine;
 
-public class PaddleController : MonoBehaviour
+public abstract class PaddleController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    public float speed = 10f;  // Paddle movement speed
-    public float yLimit = 4.5f; // Vertical clamp (depends on your camera size)
+    public float speed = 10f;
+    public float yLimit = 4.5f;
 
     protected Rigidbody2D rb;
     protected Vector2 velocity;
@@ -15,7 +15,7 @@ public class PaddleController : MonoBehaviour
         if (rb == null)
         {
             rb = gameObject.AddComponent<Rigidbody2D>();
-            rb.gravityScale = 0; // Paddles should not fall
+            rb.gravityScale = 0;
         }
     }
 
@@ -23,24 +23,15 @@ public class PaddleController : MonoBehaviour
     {
         Vector2 input = GetInput();
 
-        // Calculate velocity
         velocity = input * speed;
 
-        // Move the paddle
         Vector2 newPosition = rb.position + velocity * Time.fixedDeltaTime;
-
-        // Clamp vertical position
         newPosition.y = Mathf.Clamp(newPosition.y, -yLimit, yLimit);
 
         rb.MovePosition(newPosition);
     }
 
-    /// <summary>
-    /// Virtual method to get input. Each player overrides this.
-    /// </summary>
-    /// <returns>Vector2 direction</returns>
-    protected virtual Vector2 GetInput()
-    {
-        return Vector2.zero; // Base class does nothing
-    }
+    // 🔴 ABSTRACT: no body allowed
+    protected abstract Vector2 GetInput();
 }
+
