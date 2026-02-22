@@ -1,8 +1,11 @@
-using UnityEngine;
 
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 public abstract class NetworkedObject : MonoBehaviour
 {
     public abstract void Initialize();
-    public abstract int GetNetworkId();
+    public abstract string GetNetworkId();
 }
 

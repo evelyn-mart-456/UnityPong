@@ -1,46 +1,64 @@
 using UnityEngine;
 using Unity.Netcode;
 
-public class LeftPaddleController : PaddleController, ICollidable
+public class PaddleController : NetworkBehaviour, ICollidable
 {
-    public NetworkVariable<float> paddleY = new NetworkVariable<float>();
+    protected float speed = 8f;
+    protected Rigidbody2D rb;
 
-    protected override Vector2 GetInput()
+    private NetworkVariable<float> networkPositionY =
+        new NetworkVariable<float>(
+            0f,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Owner
+        );
+
+    void Start()
     {
-        // Only allow the owner to provide input
-        if (!IsOwner)
-            return Vector2.zero;
+        rb = GetComponent<Rigidbody2D>();
 
-        float vertical = Input.GetAxis("Player1Vertical");
-        return new Vector2(0, vertical);
+        if (rb != null)
+            rb.bodyType = RigidbodyType2D.Kinematic;
+        else
+            Debug.LogError(gameObject.name + " is missing Rigidbody2D!");
     }
 
-    protected override void FixedUpdate()
+    public override void OnNetworkSpawn()
+{
+    if (OwnerClientId == 0)
+        transform.position = new Vector3(-8f, 0f, 0f);
+    else
+        transform.position = new Vector3(8f, 0f, 0f);
+
+    networkPositionY.Value = transform.position.y;
+}
+
+    void FixedUpdate()
     {
-        base.FixedUpdate();
+        if (rb == null) return;
 
         if (IsOwner)
         {
-            paddleY.Value = rb.position.y; // update NetworkVariable
+            float inputValue = Input.GetAxis(GetInputAxisName());
+            rb.velocity = new Vector2(0f, inputValue * speed);
+
+            networkPositionY.Value = transform.position.y;
         }
         else
         {
-            // Non-owner: follow networked value
-            Vector2 pos = rb.position;
-            pos.y = paddleY.Value;
-            rb.MovePosition(pos);
+            Vector3 pos = transform.position;
+            pos.y = networkPositionY.Value;
+            transform.position = pos;
         }
+    }
+
+    protected virtual string GetInputAxisName()
+    {
+        return "Vertical";
     }
 
     public void OnHit(Collision2D collision)
     {
-        Debug.Log("Left paddle was hit by: " + collision.gameObject.name);
-        GetComponent<SpriteRenderer>().color = Color.red;
-        Invoke(nameof(ResetColor), 0.2f);
-    }
-
-    private void ResetColor()
-    {
-        GetComponent<SpriteRenderer>().color = Color.white;
+        Debug.Log(gameObject.name + " was hit by ball");
     }
 }

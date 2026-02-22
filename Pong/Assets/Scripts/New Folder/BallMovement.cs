@@ -1,41 +1,64 @@
 using UnityEngine;
 using Unity.Netcode;
 
-public class BallController : NetworkBehaviour, ICollidable
+public class BallController : NetworkBehaviour
 {
-    public float speed = 8f;
-    private Rigidbody2D rb;
+    public float speed = 5.0f;
 
-    public override void OnNetworkSpawn()
+    private Rigidbody2D rb;
+    private Vector2 direction;
+
+  void Start()
+{
+    rb = GetComponent<Rigidbody2D>();
+
+    if (rb == null)
     {
-        rb = GetComponent<Rigidbody2D>();
-        
-        // Only the server controls the ball
-        if (IsServer)
-        {
-            LaunchBall();
-        }
+        Debug.LogError("Ball missing Rigidbody2D!");
+        return;
     }
 
-    private void LaunchBall()
+    direction = new Vector2(1f, 1f).normalized;
+}
+
+ 
+  
+        void FixedUpdate()
+{
+    if (!IsServer) return;
+
+    if (rb == null) return;
+
+    rb.velocity = direction * speed;
+}
+    
+
+    void OnCollisionEnter2D(Collision2D collision)
     {
-        float xDir = Random.Range(0, 2) == 0 ? -1 : 1;
-        float yDir = Random.Range(-0.5f, 0.5f);
-        rb.velocity = new Vector2(xDir, yDir).normalized * speed;
+        if (!IsServer) return;
+
+        ICollidable collidable = collision.gameObject.GetComponent<ICollidable>();
+        if (collidable != null)
+        {
+            collidable.OnHit(collision);
+        }
+
+        OnHit(collision);
     }
 
     public void OnHit(Collision2D collision)
     {
-        // Optional: ball hit feedback
-        Debug.Log("Ball hit: " + collision.gameObject.name);
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (TryGetComponent<ICollidable>(out var collidable))
+        if (collision.gameObject.name == "top" || collision.gameObject.name == "bottom")
         {
-            collidable.OnHit(collision);
+            direction = new Vector2(direction.x, -direction.y);
         }
+        else if (collision.gameObject.name == "LeftPaddleController" ||
+                 collision.gameObject.name == "RightPaddleController")
+        {
+            direction = new Vector2(-direction.x, direction.y);
+        }
+
+        direction = direction.normalized;
     }
 }
-
+   
